@@ -11,11 +11,13 @@ import {
   Settings,
   MessageCircle,
   Heart,
+  Plus,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import PostModal from "./PostModal";
+import { toast } from "sonner";
 
 export interface IProfileData {
   username: string;
@@ -52,6 +54,7 @@ export default function ProfilePage() {
   const [selectedPost, setSelectedPost] = useState<IPostData | null>(null);
   const [comment, setComment] = useState("");
   const [hoveredPost, setHoveredPost] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -129,6 +132,7 @@ export default function ProfilePage() {
     if (!selectedPost || !comment.trim()) return;
 
     try {
+      setIsLoading(true);
       await axios.post(`http://localhost:4000/api/comment`, {
         mediaId: selectedPost.id,
         message: comment,
@@ -136,11 +140,13 @@ export default function ProfilePage() {
       });
       // Clear comment input
       setComment("");
-      // You might want to refresh comments here
-      alert("Comment posted successfully!");
+      toast("Comment posted successfully!");
+      // You might want to refresh comments
     } catch (err) {
-      alert("Failed to post comment. Please try again.");
+      toast("Failed to post comment. Please try again.");
       console.error("Comment error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,9 +199,9 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-4 px-48">
       {/* Profile Header */}
-      <div className="flex items-start gap-20 mb-10">
+      <div className="flex items-start gap-20 my-10">
         <div className="relative flex-shrink-0">
           <Avatar className="w-36 h-36 border-none bg-gray-300">
             <AvatarImage
@@ -216,13 +222,13 @@ export default function ProfilePage() {
             <h1 className="text-xl font-normal">{profile.username}</h1>
             <Button
               variant="outline"
-              className="h-8 rounded-md px-4 text-sm font-medium"
+              className="h-8 rounded-md px-4 text-sm border-none bg-gray-200 font-bold"
             >
               Edit Profile
             </Button>
             <Button
               variant="outline"
-              className="h-8 rounded-md px-4 text-sm font-medium"
+              className="h-8 rounded-md px-4 text-sm border-none bg-gray-200 font-bold"
             >
               View archive
             </Button>
@@ -260,45 +266,56 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      <div className="flex justify-start mb-8">
+        <div className="flex flex-col items-center">
+          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border border-gray-300">
+            <Plus className="w-12 h-12 text-slate-400" />
+          </div>
+          <span className="text-xs mt-2 font-bold">New</span>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 border-t border-b border-gray-200 bg-transparent h-12">
-          <TabsTrigger
-            value="posts"
-            className="data-[state=active]:border-t-2 data-[state=active]:border-black data-[state=active]:rounded-none"
-          >
-            <Grid className="w-4 h-4 mr-2" />
-            POSTS
-          </TabsTrigger>
-          <TabsTrigger
-            value="reels"
-            className="data-[state=active]:border-t-2 data-[state=active]:border-black data-[state=active]:rounded-none"
-          >
-            <Film className="w-4 h-4 mr-2" />
-            REELS
-          </TabsTrigger>
-          <TabsTrigger
-            value="saved"
-            className="data-[state=active]:border-t-2 data-[state=active]:border-black data-[state=active]:rounded-none"
-          >
-            <Bookmark className="w-4 h-4 mr-2" />
-            SAVED
-          </TabsTrigger>
-          <TabsTrigger
-            value="tagged"
-            className="data-[state=active]:border-t-2 data-[state=active]:border-black data-[state=active]:rounded-none"
-          >
-            <Tag className="w-4 h-4 mr-2" />
-            TAGGED
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="posts" className="mx-auto w-full pt-8 z-0">
+        <div className="flex justify-center items-center border-t border-gray-200 bg-transparent w-full">
+          <TabsList className="grid grid-cols-4 gap-x-10 border-t border-gray-200 bg-transparent h-12">
+            <TabsTrigger
+              value="posts"
+              className="text-xs data-[state=active]:border-t data-[state=active]:border-t-black"
+            >
+              <Grid className="w-4 h-4 mr-2" />
+              POSTS
+            </TabsTrigger>
+            <TabsTrigger
+              value="reels"
+              className="text-xs data-[state=active]:border-t data-[state=active]:border-t-black"
+            >
+              <Film className="w-4 h-4 mr-2" />
+              REELS
+            </TabsTrigger>
+            <TabsTrigger
+              value="saved"
+              className="text-xs data-[state=active]:border-t data-[state=active]:border-t-black"
+            >
+              <Bookmark className="w-4 h-4 mr-2" />
+              SAVED
+            </TabsTrigger>
+            <TabsTrigger
+              value="tagged"
+              className="text-xs data-[state=active]:border-t data-[state=active]:border-t-black"
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              TAGGED
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="posts" className="mt-6">
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 gap-1 pr-20 w-full">
             {media.map((post) => (
               <div
                 key={post.id}
-                className="aspect-square relative cursor-pointer"
+                className="aspect-square w-80 relative cursor-pointer"
                 onClick={() => openPostModal(post)}
                 onMouseEnter={() => setHoveredPost(post.id)}
                 onMouseLeave={() => setHoveredPost(null)}
@@ -411,6 +428,8 @@ export default function ProfilePage() {
           setComment={setComment}
           handleComment={handleComment}
           profile={profile}
+          setIsLoading={setIsLoading}
+          loading={isLoading}
         />
       )}
     </div>

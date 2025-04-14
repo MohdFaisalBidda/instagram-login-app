@@ -9,6 +9,14 @@ function RootApp() {
     <Router>
       <Routes>
         <Route
+          path="/auth/success"
+          element={
+            <InstagramLayout>
+              <ProfilePage />
+            </InstagramLayout>
+          }
+        />
+        <Route
           path="/"
           element={
             <InstagramLayout>

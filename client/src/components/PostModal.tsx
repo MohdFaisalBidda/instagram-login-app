@@ -10,12 +10,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import axios from "axios";
+import { toast } from "sonner";
 
 interface ICommentData {
   id: string;
   text: string;
   username: string;
   timestamp: string;
+  replies: {
+    data: ICommentData[];
+  };
   // Add other comment fields as needed
 }
 
@@ -46,6 +50,8 @@ interface PostModalProps {
   setComment: (comment: string) => void;
   handleComment: () => void;
   profile: IProfileData;
+  setIsLoading: (loading: boolean) => void;
+  loading: boolean;
 }
 
 function PostModal({
@@ -56,9 +62,13 @@ function PostModal({
   setComment,
   handleComment,
   profile,
+  setIsLoading,
+  loading,
 }: PostModalProps) {
   const [comments, setComments] = useState<ICommentData[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -68,7 +78,7 @@ function PostModal({
     if (isOpen) {
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleEsc);
-      
+
       // Load comments when modal opens
       if (post.comments?.data) {
         setComments(post.comments.data);
@@ -81,13 +91,49 @@ function PostModal({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEsc);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, handleComment]);
+
+  const handleReply = async (commentId: string) => {
+    if (!replyText.trim()) return;
+
+    try {
+      setIsLoading(true);
+      await axios.post(`http://localhost:4000/api/comment`, {
+        mediaId: post.id,
+        message: replyText,
+        accessToken: localStorage.getItem("accessToken"),
+        replyToCommentId: commentId, // Send the parent comment ID
+      });
+
+      setReplyText("");
+      setReplyingTo(null);
+      toast("Reply posted successfully!");
+      // Refresh comments
+      fetchComments();
+    } catch (err) {
+      toast("Failed to post reply. Please try again.");
+      console.error("Reply error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to toggle reply input for a comment
+  const toggleReply = (commentId: string) => {
+    if (replyingTo === commentId) {
+      setReplyingTo(null);
+    } else {
+      setReplyingTo(commentId);
+    }
+  };
 
   const fetchComments = async () => {
     try {
       setLoadingComments(true);
       // You'll need to implement this API endpoint to fetch comments for a specific post
-      const response = await axios.get(`/api/comments?mediaId=${post.id}`);
+      const response = await axios.get(`http://localhost:4000/api/comments?mediaId=${post.id}`);
+      console.log(response.data.data, "res in fetchComments");
+
       setComments(response.data.data || []);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -99,8 +145,10 @@ function PostModal({
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const postDate = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - postDate.getTime()) / 1000);
-    
+    const diffInSeconds = Math.floor(
+      (now.getTime() - postDate.getTime()) / 1000
+    );
+
     if (diffInSeconds < 60) return `${diffInSeconds}s`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
@@ -110,18 +158,18 @@ function PostModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center">
-      <div className="relative bg-white h-[90vh] w-[90vw] max-w-6xl flex">
+    <div className="fixed inset-0 z-[999] bg-black flex items-center justify-center">
+      <button
+        onClick={onClose}
+        className="absolute cursor-pointer top-4 right-4 z-50 text-white hover:text-gray-300"
+      >
+        <X className="w-6 h-6 text-white" />
+      </button>
+      <div className="relative bg-white h-[90vh] w-[90vw] max-w-6xl flex rounded-xl">
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 text-white hover:text-gray-300"
-        >
-          <X className="w-6 h-6" />
-        </button>
 
         {/* Post content - left side */}
-        <div className="flex-1 bg-black flex items-center justify-center">
+        <div className="flex-1 bg-black/80 flex items-center justify-center">
           {post.media_type === "IMAGE" ||
           post.media_type === "CAROUSEL_ALBUM" ? (
             <img
@@ -210,9 +258,68 @@ function PostModal({
                       <span className="font-semibold">{comment.username}</span>{" "}
                       {comment.text}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div
+                      onClick={() => toggleReply(comment.id)}
+                      className="text-xs text-gray-500 mt-1"
+                    >
                       {formatTimeAgo(comment.timestamp)} · Reply
                     </div>
+                    {replyingTo === comment.id && (
+                      <div className="mt-2 flex items-center">
+                        <input
+                          type="text"
+                          placeholder="Write a reply..."
+                          className="flex-1 text-sm outline-none border-b border-gray-300 pb-1"
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          onKeyPress={(e) =>
+                            e.key === "Enter" && handleReply(comment.id)
+                          }
+                        />
+                        <Button
+                          variant="ghost"
+                          className="text-blue-500 font-semibold text-sm"
+                          onClick={() => handleReply(comment.id)}
+                          disabled={!replyText.trim() || loading}
+                        >
+                          {loading ? "Posting..." : "Post"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {comment.replies?.data &&
+                      comment.replies.data.length > 0 && (
+                        <div className="mt-2 ml-4 pl-4 border-l-2 border-gray-200">
+                          {comment.replies.data.map((reply) => (
+                            <div
+                              key={reply.id}
+                              className="flex items-start mb-3"
+                            >
+                              <Avatar className="w-6 h-6 mr-2">
+                                <AvatarImage
+                                  src="/placeholder.svg?height=24&width=24"
+                                  alt={`@${reply.username}`}
+                                />
+                                <AvatarFallback>
+                                  {reply.username?.charAt(0).toUpperCase() ||
+                                    "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="text-sm">
+                                  <span className="font-semibold">
+                                    {reply.username}
+                                  </span>{" "}
+                                  {reply.text}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {formatTimeAgo(reply.timestamp)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
                     <MoreHorizontal className="w-4 h-4" />
@@ -278,9 +385,9 @@ function PostModal({
                 variant="ghost"
                 className="text-blue-500 font-semibold text-sm"
                 onClick={handleComment}
-                disabled={!comment.trim()}
+                disabled={!comment.trim() || loading}
               >
-                Post
+                {loading ? "Posting..." : "Post"}
               </Button>
             </div>
           </div>

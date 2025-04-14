@@ -80,6 +80,8 @@ router.get("/comments", async (req, res) => {
 
   try {
     const response = await axios.get(url);
+
+    console.log(response.data.data, "res in fetchComments");
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -88,7 +90,19 @@ router.get("/comments", async (req, res) => {
 });
 
 router.post("/comment", async (req, res) => {
-  const { mediaId, message, accessToken } = req.body;
+  const { mediaId, message, accessToken, replyToCommentId } = req.body;
+  // If this is a reply
+  if (replyToCommentId) {
+    const response = await axios.post(
+      `https://graph.instagram.com/${replyToCommentId}/replies`,
+      { message },
+      {
+        params: { access_token: accessToken },
+      }
+    );
+    return res.json(response.data);
+  }
+
   const url = `https://graph.facebook.com/v22.0/${mediaId}/comments`;
   const response = await axios.post(url, null, {
     params: { message, access_token: accessToken },
