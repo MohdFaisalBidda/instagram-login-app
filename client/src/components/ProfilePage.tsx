@@ -141,6 +141,20 @@ export default function ProfilePage() {
       // Clear comment input
       setComment("");
       toast("Comment posted successfully!");
+      // Refresh the comments for the selected post
+      if (isModalOpen && selectedPost) {
+        const response = await axios.get(
+          `http://localhost:4000/api/comments?mediaId=${
+            selectedPost.id
+          }&accessToken=${localStorage.getItem("accessToken")}`
+        );
+        setSelectedPost((prev) => ({
+          ...prev!,
+          comments: {
+            data: response.data.data || [],
+          },
+        }));
+      }
       // You might want to refresh comments
     } catch (err) {
       toast("Failed to post comment. Please try again.");

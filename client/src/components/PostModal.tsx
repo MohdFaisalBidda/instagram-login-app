@@ -69,6 +69,7 @@ function PostModal({
   const [loadingComments, setLoadingComments] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  console.log(comments, "comments");
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -81,9 +82,8 @@ function PostModal({
 
       // Load comments when modal opens
       if (post.comments?.data) {
+        console.log(post, "all posts");
         setComments(post.comments.data);
-      } else {
-        fetchComments();
       }
     }
 
@@ -91,7 +91,7 @@ function PostModal({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEsc);
     };
-  }, [isOpen, onClose, handleComment]);
+  }, [isOpen, onClose]);
 
   const handleReply = async (commentId: string) => {
     if (!replyText.trim()) return;
@@ -130,11 +130,19 @@ function PostModal({
   const fetchComments = async () => {
     try {
       setLoadingComments(true);
-      // You'll need to implement this API endpoint to fetch comments for a specific post
-      const response = await axios.get(`http://localhost:4000/api/comments?mediaId=${post.id}`);
+      const response = await axios.get(
+        `http://localhost:4000/api/comments?mediaId=${
+          post.id
+        }&accessToken=${localStorage.getItem("accessToken")}`
+      );
       console.log(response.data.data, "res in fetchComments");
 
       setComments(response.data.data || []);
+
+      // Update the post's comments if they exist in the response
+      if (response.data.data) {
+        post.comments = { data: response.data.data };
+      }
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
@@ -156,6 +164,12 @@ function PostModal({
   };
 
   if (!isOpen) return null;
+
+  useEffect(() => {
+    if (isOpen && post.id) {
+      fetchComments();
+    }
+  }, [isOpen, post.id]);
 
   return (
     <div className="fixed inset-0 z-[999] bg-black flex items-center justify-center">
@@ -243,42 +257,47 @@ function PostModal({
               </div>
             ) : (
               comments.map((comment) => (
-                <div key={comment.id} className="flex items-start mb-4">
-                  <Avatar className="w-8 h-8 mr-3">
+                <div key={comment.id} className="flex items-start gap-3 mb-4">
+                  <Avatar className="w-8 h-8">
                     <AvatarImage
-                      src="/placeholder.svg?height=32&width=32"
+                      src="/placeholder.svg"
                       alt={`@${comment.username}`}
                     />
                     <AvatarFallback>
-                      {comment.username?.charAt(0).toUpperCase() || "U"}
+                      {comment.username?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
+
                   <div className="flex-1">
-                    <div className="text-sm">
-                      <span className="font-semibold">{comment.username}</span>{" "}
+                    <div className="text-sm leading-snug">
+                      <span className="font-semibold mr-1">
+                        {comment.username}
+                      </span>
                       {comment.text}
                     </div>
                     <div
+                      className="text-xs text-gray-500 mt-1 cursor-pointer hover:underline"
                       onClick={() => toggleReply(comment.id)}
-                      className="text-xs text-gray-500 mt-1"
                     >
                       {formatTimeAgo(comment.timestamp)} · Reply
                     </div>
+
+                    {/* Reply input */}
                     {replyingTo === comment.id && (
-                      <div className="mt-2 flex items-center">
+                      <div className="mt-2 flex items-center gap-2">
                         <input
                           type="text"
                           placeholder="Write a reply..."
-                          className="flex-1 text-sm outline-none border-b border-gray-300 pb-1"
+                          className="flex-1 text-sm border-b border-gray-300 pb-1 outline-none"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyPress={(e) =>
+                          onKeyDown={(e) =>
                             e.key === "Enter" && handleReply(comment.id)
                           }
                         />
                         <Button
                           variant="ghost"
-                          className="text-blue-500 font-semibold text-sm"
+                          className="text-blue-500 font-semibold text-sm cursor-pointer"
                           onClick={() => handleReply(comment.id)}
                           disabled={!replyText.trim() || loading}
                         >
@@ -287,41 +306,45 @@ function PostModal({
                       </div>
                     )}
 
-                    {comment.replies?.data &&
-                      comment.replies.data.length > 0 && (
-                        <div className="mt-2 ml-4 pl-4 border-l-2 border-gray-200">
-                          {comment.replies.data.map((reply) => (
-                            <div
-                              key={reply.id}
-                              className="flex items-start mb-3"
-                            >
-                              <Avatar className="w-6 h-6 mr-2">
-                                <AvatarImage
-                                  src="/placeholder.svg?height=24&width=24"
-                                  alt={`@${reply.username}`}
-                                />
-                                <AvatarFallback>
-                                  {reply.username?.charAt(0).toUpperCase() ||
-                                    "U"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="text-sm">
-                                  <span className="font-semibold">
-                                    {reply.username}
-                                  </span>{" "}
-                                  {reply.text}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {formatTimeAgo(reply.timestamp)}
-                                </div>
+                    {/* Replies */}
+                    {comment.replies?.data?.length > 0 && (
+                      <div className="mt-3 ml-4 pl-3 border-l border-gray-200 space-y-2">
+                        {comment.replies.data.map((reply) => (
+                          <div
+                            key={reply.id}
+                            className="flex items-start gap-2"
+                          >
+                            <Avatar className="w-6 h-6">
+                              <AvatarImage
+                                src="/placeholder.svg"
+                                alt={`@${reply.username}`}
+                              />
+                              <AvatarFallback>
+                                {reply.username?.[0]?.toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="text-sm">
+                                <span className="font-semibold mr-1">
+                                  {reply.username}
+                                </span>
+                                {reply.text}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {formatTimeAgo(reply.timestamp)}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 ml-2 cursor-pointer"
+                  >
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </div>

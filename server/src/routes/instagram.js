@@ -63,7 +63,6 @@ router.get("/profile", async (req, res) => {
   const url = `https://graph.facebook.com/v22.0/${instagramId}?fields=username,profile_picture_url,followers_count,media_count&access_token=${accessToken}`;
 
   const response = await axios.get(url);
-  console.log(response.data);
   res.json(response.data);
 });
 
@@ -76,13 +75,42 @@ router.get("/media", async (req, res) => {
 
 router.get("/comments", async (req, res) => {
   const { mediaId, accessToken } = req.query;
-  const url = `https://graph.facebook.com/v22.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`;
-
   try {
-    const response = await axios.get(url);
+    const commentsRes = await axios.get(
+      `https://graph.facebook.com/v22.0/${mediaId}/comments`,
+      {
+        params: {
+          access_token: accessToken,
+          fields: "id,text,username,timestamp",
+        },
+      }
+    );
+    console.log(commentsRes.data.data, "comments here before");
 
-    console.log(response.data.data, "res in fetchComments");
-    res.json(response.data);
+    const comments = await Promise.all(
+      commentsRes.data.data.map(async (comment) => {
+        // Fetch replies for each comment
+        const repliesRes = await axios.get(
+          `https://graph.facebook.com/v22.0/${comment.id}/replies`,
+          {
+            params: {
+              access_token: accessToken,
+              fields: "id,text,username,timestamp",
+            },
+          }
+        );
+        console.log(repliesRes.data.data, "replies");
+
+        return {
+          ...comment,
+          replies: {
+            data: repliesRes.data.data || [],
+          },
+        };
+      })
+    );
+
+    res.json({ data: comments });
   } catch (error) {
     console.error("Error fetching comments:", error);
     res.status(500).json({ error: "Failed to fetch comments" });
@@ -94,7 +122,7 @@ router.post("/comment", async (req, res) => {
   // If this is a reply
   if (replyToCommentId) {
     const response = await axios.post(
-      `https://graph.instagram.com/${replyToCommentId}/replies`,
+      `https://graph.facebook.com/v22.0/${replyToCommentId}/replies`,
       { message },
       {
         params: { access_token: accessToken },
