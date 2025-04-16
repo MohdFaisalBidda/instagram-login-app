@@ -108,7 +108,7 @@ function PostModal({
 
     try {
       setIsLoading(true);
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/comment`, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/comment`, {
         mediaId: post.id,
         message: replyText,
         accessToken: localStorage.getItem("accessToken"),
@@ -146,7 +146,7 @@ function PostModal({
     try {
       setLoadingComments(true);
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/comments?mediaId=${
+        `${import.meta.env.VITE_API_URL}/api/comments?mediaId=${
           post.id
         }&accessToken=${localStorage.getItem("accessToken")}`
       );

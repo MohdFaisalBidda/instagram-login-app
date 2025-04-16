@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
   const fetchAuthUrl = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/auth`);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth`);
       setAuthUrl(response.data.authUrl);
     } catch (err) {
       setError("Failed to get authentication URL");
@@ -109,10 +109,10 @@ export default function ProfilePage() {
       setLoading(true);
       const [profileRes, mediaRes] = await Promise.all([
         axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/profile?accessToken=${accessToken}&instagramId=${instagramId}`
+          `${import.meta.env.VITE_API_URL}/api/profile?accessToken=${accessToken}&instagramId=${instagramId}`
         ),
         axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/media?accessToken=${accessToken}&instagramId=${instagramId}`
+          `${import.meta.env.VITE_API_URL}/api/media?accessToken=${accessToken}&instagramId=${instagramId}`
         ),
       ]);
 
@@ -132,7 +132,7 @@ export default function ProfilePage() {
 
     try {
       setIsLoading(true);
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/comment`, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/comment`, {
         mediaId: selectedPost.id,
         message: comment,
         accessToken: localStorage.getItem("accessToken"),
@@ -143,7 +143,7 @@ export default function ProfilePage() {
       // Refresh the comments for the selected post
       if (isModalOpen && selectedPost) {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/comments?mediaId=${
+          `${import.meta.env.VITE_API_URL}/api/comments?mediaId=${
             selectedPost.id
           }&accessToken=${localStorage.getItem("accessToken")}`
         );
