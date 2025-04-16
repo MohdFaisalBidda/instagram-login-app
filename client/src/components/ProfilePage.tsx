@@ -7,7 +7,6 @@ import {
   Film,
   Bookmark,
   Tag,
-  MoreHorizontal,
   Settings,
   MessageCircle,
   Heart,

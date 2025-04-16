@@ -68,7 +68,7 @@ router.get("/profile", async (req, res) => {
 
 router.get("/media", async (req, res) => {
   const { accessToken, instagramId } = req.query;
-  const url = `https://graph.facebook.com/v22.0/${instagramId}/media?fields=id,caption,media_url,media_type,timestamp,likes_count,comments_count,comments{id,text,username,timestamp}&access_token=${accessToken}`;
+  const url = `https://graph.facebook.com/v22.0/${instagramId}/media?fields=id,caption,media_url,media_type,timestamp,likes{username},comments_count,comments{id,text,username,timestamp}&access_token=${accessToken}`;
   const response = await axios.get(url);
   res.json(response.data);
 });

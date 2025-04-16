@@ -52,8 +52,8 @@ function MainApp() {
     } else if (localStorage.getItem("accessToken")) {
       // User already authenticated
       fetchProfileAndMedia(
-        localStorage.getItem("accessToken"),
-        localStorage.getItem("instagramId")
+        localStorage.getItem("accessToken")!,
+        localStorage.getItem("instagramId")!
       );
     } else {
       // Not authenticated - get auth URL
@@ -104,7 +104,6 @@ function MainApp() {
   //   }
   // };
 
-
   const fetchProfileAndMedia = async (
     accessToken: string,
     instagramId: string
@@ -122,7 +121,7 @@ function MainApp() {
 
       console.log(profileRes, "profileRes");
       console.log(mediaRes, "mediaRes");
-      
+
       setProfile(profileRes.data);
       setMedia(mediaRes.data.data || []);
     } catch (err) {
