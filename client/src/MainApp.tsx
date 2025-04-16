@@ -64,7 +64,7 @@ function MainApp() {
   const fetchAuthUrl = async () => {
     try {
       const response = await axios.get(
-        `${process.env.NEXT_SERVER_API_URL}/api/auth`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth`
       );
       setAuthUrl(response.data.authUrl);
     } catch (err) {
@@ -81,7 +81,7 @@ function MainApp() {
   //     setLoading(true);
   //     try {
   //       const response = await axios.get(
-  //         `${process.env.NEXT_SERVER_API_URL}/api/callback?code=${code}`
+  //         `${process.env.NEXT_PUBLIC_API_URL}/api/callback?code=${code}`
   //       );
   //       const { accessToken, instagramId } = response.data;
 
@@ -114,10 +114,10 @@ function MainApp() {
       setLoading(true);
       const [profileRes, mediaRes] = await Promise.all([
         axios.get(
-          `${process.env.NEXT_SERVER_API_URL}/api/profile?accessToken=${accessToken}&instagramId=${instagramId}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/profile?accessToken=${accessToken}&instagramId=${instagramId}`
         ),
         axios.get(
-          `${process.env.NEXT_SERVER_API_URL}/api/media?accessToken=${accessToken}&instagramId=${instagramId}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/media?accessToken=${accessToken}&instagramId=${instagramId}`
         ),
       ]);
 
@@ -139,7 +139,7 @@ function MainApp() {
     if (!message) return;
 
     try {
-      await axios.post(`${process.env.NEXT_SERVER_API_URL}/api/comment`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/comment`, {
         mediaId,
         message,
         accessToken: localStorage.getItem("accessToken"),
