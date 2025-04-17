@@ -46,7 +46,7 @@ router.get("/callback", async (req, res) => {
     );
 
     res.redirect(
-      `http://localhost:5173/auth/success?` +
+      `${process.env.VITE_API_URL}/auth/success?` +
         `accessToken=${encodeURIComponent(pageAccessToken)}&` +
         `instagramId=${encodeURIComponent(
           instagramAccount.data.instagram_business_account.id
